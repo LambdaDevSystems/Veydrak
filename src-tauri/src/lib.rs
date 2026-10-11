@@ -1,3 +1,5 @@
+mod config;
+mod guard;
 mod lan;
 mod pty;
 mod state;
@@ -6,6 +8,11 @@ mod sysmon;
 use state::AppState;
 
 pub fn run() {
+    if let Err(msg) = guard::refuse_root() {
+        eprintln!("{msg}");
+        std::process::exit(1);
+    }
+
     tauri::Builder::default()
         .plugin(tauri_plugin_store::Builder::new().build())
         .manage(AppState::default())
@@ -14,6 +21,8 @@ pub fn run() {
             pty::manager::write_pty,
             pty::manager::resize_pty,
             pty::manager::close_pty,
+            config::get_config,
+            config::set_theme,
             lan::roster::get_roster,
             lan::roster::toggle_pin,
         ])

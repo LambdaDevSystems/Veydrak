@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { listen } from '@tauri-apps/api/event';
-  import { cpuHistory, memHistory, memTotal, ingestSample, HISTORY_LEN, type SysSample } from '../../stores/sysmon';
+  import { cpuHistory, memHistory, memTotal, battery, ingestSample, HISTORY_LEN, type SysSample } from '../../stores/sysmon';
   import { formatBytes } from '../../utils/format';
 
   onMount(() => {
@@ -26,6 +26,9 @@
   <svg viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points={points($cpuHistory, 100)} /></svg>
   <div>MEM {formatBytes(mem)} / {formatBytes($memTotal)}</div>
   <svg viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points={points($memHistory, $memTotal || 1)} /></svg>
+  {#if $battery}
+    <div>BAT {$battery.percent}%{$battery.charging ? ' (charging)' : ''}</div>
+  {/if}
 </section>
 
 <style>

@@ -58,9 +58,12 @@ body {
   min-height: 0;
 }
 
+.panel-grid.single {
+  grid-template-columns: 1fr;
+}
+
 .side-column {
   display: grid;
-  grid-template-rows: 1fr 1fr;
   gap: 8px;
   min-height: 0;
 }

@@ -1,3 +1,5 @@
+pub mod battery;
+
 use std::time::Duration;
 
 use serde::Serialize;
@@ -9,6 +11,7 @@ pub struct SysSample {
     pub cpu: f32,
     pub mem_used: u64,
     pub mem_total: u64,
+    pub battery: Option<battery::Battery>,
 }
 
 pub async fn monitor_loop(app: AppHandle) {
@@ -22,6 +25,7 @@ pub async fn monitor_loop(app: AppHandle) {
             cpu: sys.global_cpu_usage(),
             mem_used: sys.used_memory(),
             mem_total: sys.total_memory(),
+            battery: battery::read(),
         };
         let _ = app.emit("sysmon", sample);
     }
