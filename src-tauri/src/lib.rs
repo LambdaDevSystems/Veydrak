@@ -1,3 +1,4 @@
+mod config;
 mod guard;
 mod lan;
 mod pty;
@@ -20,6 +21,8 @@ pub fn run() {
             pty::manager::write_pty,
             pty::manager::resize_pty,
             pty::manager::close_pty,
+            config::get_config,
+            config::set_theme,
             lan::roster::get_roster,
             lan::roster::toggle_pin,
         ])

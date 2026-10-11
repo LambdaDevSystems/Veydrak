@@ -1,15 +1,24 @@
 <script lang="ts">
   import { basePhosphor, effectivePhosphor, type Phosphor } from '../stores/theme';
   import { offlineDevices } from '../stores/lan';
+  import { configWarning, persistTheme } from '../stores/config';
+  import { get } from 'svelte/store';
 
   const palettes: Phosphor[] = ['green', 'amber'];
-  const next = () => basePhosphor.update((p) => palettes[(palettes.indexOf(p) + 1) % palettes.length]);
+  const next = () => {
+    const p = get(basePhosphor);
+    const n = palettes[(palettes.indexOf(p) + 1) % palettes.length];
+    basePhosphor.set(n);
+    persistTheme(n);
+  };
 </script>
 
 <div class="status">
   <span>SENTINEL</span>
   <span>
-    {#if $offlineDevices.length > 0}
+    {#if $configWarning}
+      CONFIG: {$configWarning}
+    {:else if $offlineDevices.length > 0}
       ALERT: {$offlineDevices.length} pinned device(s) offline
     {:else}
       ALL SYSTEMS NOMINAL
