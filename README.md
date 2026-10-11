@@ -23,9 +23,6 @@ pnpm tauri build    # release bundle
 ICMP probes need unprivileged ICMP sockets (Linux: `net.ipv4.ping_group_range` must include your group) or
 `CAP_NET_RAW`. Without it, devices show as *unknown* rather than offline.
 
-## Not yet wired
-
-- Auto-update (needs signing keys; see `.github/workflows/release.yml`).
 
 ## Security hardening
 
@@ -49,3 +46,17 @@ ICMP probes need unprivileged ICMP sockets (Linux: `net.ipv4.ping_group_range` m
 - `layout.main` / `layout.side`: panel ids from `terminal`, `sysmon`, `lan`. Each panel can appear once; side holds up to 4. Unknown ids are ignored.
 - Missing keys use defaults. An unparseable file falls back to defaults, shows a warning in the status bar, and is never overwritten.
 - The system panel shows battery charge when `/sys/class/power_supply` reports one (Linux).
+
+## Updates
+
+Signed updates come from GitHub Releases (`.../releases/latest/download/latest.json`). On launch (5 s after start) Veydrak checks for one; if found, the status bar offers **install & restart**. Nothing downloads or restarts without your click. Disable the check with `"check_updates": false` in `config.json`.
+
+### Cutting a release
+
+1. One-time: `pnpm tauri signer generate -w ~/.tauri/veydrak.key`; put the public key in `src-tauri/tauri.conf.json` (`plugins.updater.pubkey`) and add the private key as the repo secret `TAURI_SIGNING_PRIVATE_KEY` (plus `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` if you set one). Back the private key up: if it is lost, installed copies cannot verify future updates.
+2. Bump the version in `package.json`, `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json` (the release workflow fails if they differ from the tag).
+3. Commit, then `git tag vX.Y.Z && git push origin vX.Y.Z`.
+4. The workflow builds Linux/macOS/Windows bundles and creates a **draft** release. Publish the draft to make the update visible to installed apps.
+
+macOS bundles are not notarized; the update signature is separate from Apple code signing.
+

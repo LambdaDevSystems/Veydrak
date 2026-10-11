@@ -4,6 +4,7 @@
   import StatusBar from './lib/components/StatusBar.svelte';
   import { resolvePanels } from './lib/components/panels/registry';
   import { layout, loadConfig } from './lib/stores/config';
+  import { checkForUpdate } from './lib/stores/update';
   import { alerts, effectivePhosphor } from './lib/stores/theme';
   import { offlineDevices } from './lib/stores/lan';
   import './lib/theme/phosphor.css';
@@ -12,7 +13,10 @@
   const side = $derived(resolvePanels($layout.side));
 
   onMount(() => {
-    loadConfig();
+    // Let the UI settle before touching the network; installing is always a manual click.
+    loadConfig().then((check) => {
+      if (check) setTimeout(checkForUpdate, 5000);
+    });
     return offlineDevices.subscribe((d) => alerts.set(d.length));
   });
 </script>

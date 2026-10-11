@@ -4,6 +4,7 @@ mod lan;
 mod pty;
 mod state;
 mod sysmon;
+mod updater;
 
 use state::AppState;
 
@@ -15,6 +16,7 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_store::Builder::new().build())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
             pty::manager::create_pty,
@@ -23,6 +25,8 @@ pub fn run() {
             pty::manager::close_pty,
             config::get_config,
             config::set_theme,
+            updater::check_update,
+            updater::install_update,
             lan::roster::get_roster,
             lan::roster::toggle_pin,
         ])

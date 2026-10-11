@@ -3,6 +3,7 @@
   import { offlineDevices } from '../stores/lan';
   import { configWarning, persistTheme } from '../stores/config';
   import { get } from 'svelte/store';
+  import { update, updatePhase, updateProgress, installUpdate } from '../stores/update';
 
   const palettes: Phosphor[] = ['green', 'amber'];
   const next = () => {
@@ -24,6 +25,13 @@
       ALL SYSTEMS NOMINAL
     {/if}
   </span>
+  {#if $update && $updatePhase === 'available'}
+    <button onclick={installUpdate}>UPDATE v{$update.version} available: install &amp; restart</button>
+  {:else if $updatePhase === 'installing'}
+    <span>UPDATING {$updateProgress === null ? '…' : `${Math.round($updateProgress * 100)}%`}</span>
+  {:else if $updatePhase === 'error'}
+    <span>UPDATE FAILED</span>
+  {/if}
   <button onclick={next}>phosphor: {$effectivePhosphor}</button>
 </div>
 

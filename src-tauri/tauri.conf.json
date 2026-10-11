@@ -18,6 +18,13 @@
   "bundle": {
     "active": true,
     "targets": ["deb", "rpm", "dmg", "app", "nsis"],
+    "createUpdaterArtifacts": true,
     "icon": ["icons/32x32.png", "icons/128x128.png", "icons/icon.ico", "icons/icon.icns"]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDZCMEQ4NDYwRTIxNDEwM0EKUldRNkVCVGlZSVFOYXhrcXNHOFhsYWF0N28wWGpJSC9HZDA5WHM1aUdSTSt3cjB3K1ZsWThCNU0K",
+      "endpoints": ["https://github.com/LambdaDevSystems/Veydrak/releases/latest/download/latest.json"]
+    }
   }
 }
