@@ -30,7 +30,7 @@ tokio-tungstenite = { version = "0.26", features = ["rustls-tls-native-roots"] }
 futures-util = { version = "0.3", default-features = false, features = ["sink"] }
 keyring = { version = "3", features = ["apple-native", "windows-native", "async-secret-service", "tokio", "crypto-rust"] }
 url = "2"
-portable-pty = "0.8"
+portable-pty = "0.9"
 sysinfo = "0.31"
 mdns-sd = "0.11"
 surge-ping = "0.8"
