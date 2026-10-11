@@ -1,0 +1,5 @@
+# Owners are requested for review automatically; the extra lines mark the security-sensitive paths.
+*                                @LambdaDevSystems
+/.github/                        @LambdaDevSystems
+/src-tauri/tauri.conf.json       @LambdaDevSystems
+/src-tauri/capabilities/         @LambdaDevSystems
