@@ -1,20 +1,14 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { listen } from '@tauri-apps/api/event';
-  import { cpuHistory, memHistory, memTotal, battery, ingestSample, HISTORY_LEN, type SysSample } from '../../stores/sysmon';
+  import { cpuHistory, memHistory, memTotal, battery, ingestSample, type SysSample } from '../../stores/sysmon';
   import { formatBytes } from '../../utils/format';
+  import { sparklinePoints } from '../../utils/sparkline';
 
   onMount(() => {
     const p = listen<SysSample>('sysmon', (e) => ingestSample(e.payload));
     return () => { p.then((un) => un()); };
   });
-
-  function points(values: number[], max: number): string {
-    const w = 100, h = 30;
-    return values
-      .map((v, i) => `${((i / (HISTORY_LEN - 1)) * w).toFixed(1)},${(h - (Math.min(v, max) / max) * h).toFixed(1)}`)
-      .join(' ');
-  }
 
   const cpu = $derived($cpuHistory.at(-1) ?? 0);
   const mem = $derived($memHistory.at(-1) ?? 0);
@@ -23,9 +17,9 @@
 <section class="panel">
   <h2>System</h2>
   <div>CPU {cpu.toFixed(0)}%</div>
-  <svg viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points={points($cpuHistory, 100)} /></svg>
+  <svg viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points={sparklinePoints($cpuHistory, 0, 100)} /></svg>
   <div>MEM {formatBytes(mem)} / {formatBytes($memTotal)}</div>
-  <svg viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points={points($memHistory, $memTotal || 1)} /></svg>
+  <svg viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points={sparklinePoints($memHistory, 0, $memTotal || 1)} /></svg>
   {#if $battery}
     <div>BAT {$battery.percent}%{$battery.charging ? ' (charging)' : ''}</div>
   {/if}

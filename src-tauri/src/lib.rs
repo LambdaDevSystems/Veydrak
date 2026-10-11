@@ -1,10 +1,14 @@
 mod config;
 mod guard;
+mod homeassistant;
 mod lan;
 mod pty;
 mod state;
 mod sysmon;
 mod updater;
+
+#[cfg(feature = "mock-ha")]
+pub use homeassistant::mock;
 
 use state::AppState;
 
@@ -25,6 +29,8 @@ pub fn run() {
             pty::manager::close_pty,
             config::get_config,
             config::set_theme,
+            homeassistant::ha_snapshot,
+            homeassistant::set_ha_token,
             updater::check_update,
             updater::install_update,
             lan::roster::get_roster,
@@ -33,6 +39,7 @@ pub fn run() {
         .setup(|app| {
             let handle = app.handle().clone();
             lan::roster::load_pins(&handle);
+            homeassistant::start(&handle);
             tauri::async_runtime::spawn(sysmon::monitor_loop(handle.clone()));
             tauri::async_runtime::spawn(lan::ping::run_roster_loop(handle));
             Ok(())

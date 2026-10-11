@@ -4,6 +4,14 @@ version = "0.1.0"
 description = "Veydrak: a sci-fi terminal dashboard"
 edition = "2021"
 
+[features]
+# Mock Home Assistant server (used by tests and `cargo run --example mock_ha --features mock-ha`).
+mock-ha = []
+
+[[example]]
+name = "mock_ha"
+required-features = ["mock-ha"]
+
 [lib]
 name = "veydrak_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
@@ -17,7 +25,11 @@ tauri-plugin-store = "2"
 tauri-plugin-updater = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tokio = { version = "1", features = ["time", "sync", "net", "rt"] }
+tokio = { version = "1", features = ["time", "sync", "net", "rt", "macros"] }
+tokio-tungstenite = { version = "0.26", features = ["rustls-tls-native-roots"] }
+futures-util = { version = "0.3", default-features = false, features = ["sink"] }
+keyring = { version = "3", features = ["apple-native", "windows-native", "async-secret-service", "tokio", "crypto-rust"] }
+url = "2"
 portable-pty = "0.8"
 sysinfo = "0.31"
 mdns-sd = "0.11"

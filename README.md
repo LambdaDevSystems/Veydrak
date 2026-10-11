@@ -60,3 +60,35 @@ Signed updates come from GitHub Releases (`.../releases/latest/download/latest.j
 
 macOS bundles are not notarized; the update signature is separate from Apple code signing.
 
+## Home Assistant
+
+An optional panel (`homeassistant`) shows live entity values from a Home Assistant instance over its WebSocket API. All network access and the token live in the Rust backend; the webview only receives entity states.
+
+1. In Home Assistant, open your profile page and create a **long-lived access token**.
+2. Add the panel and your entities to `config.json` (restart Veydrak after editing):
+
+```json
+{
+  "layout": { "main": "terminal", "side": ["homeassistant", "sysmon"] },
+  "homeassistant": {
+    "url": "http://homeassistant.local:8123",
+    "entities": [
+      { "id": "sensor.ups_runtime", "label": "UPS runtime" },
+      { "id": "sensor.rack_temp" }
+    ]
+  }
+}
+```
+
+   Include the port (`:8123`) unless you use a reverse proxy; `https://` becomes `wss://`. Up to 24 entities; ids look like `sensor.rack_temp`. Without a `label`, the entity's friendly name is shown.
+3. Start Veydrak. The panel asks for the token and stores it in the OS keyring. If your system has no keyring (common on minimal Linux setups), set `VEYDRAK_HA_TOKEN` in the environment instead. The token is never written to `config.json`.
+
+The client reconnects with backoff when Home Assistant is unreachable (values dim while offline) and stops retrying if the token is rejected, until you save a new one. Self-signed TLS certificates are not supported yet.
+
+### Trying it without Home Assistant
+
+```sh
+cd src-tauri && cargo run --example mock_ha --features mock-ha   # fake HA on 127.0.0.1:8123
+VEYDRAK_HA_TOKEN=mock-token pnpm tauri dev                       # with url http://127.0.0.1:8123 in config.json
+```
+
