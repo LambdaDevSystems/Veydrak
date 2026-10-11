@@ -1,0 +1,12 @@
+# Stub: signed release + updater manifest.
+# Enable once the updater is wired in: generate a keypair with `pnpm tauri signer generate`,
+# add TAURI_SIGNING_PRIVATE_KEY(_PASSWORD) as repo secrets, add tauri-plugin-updater,
+# and set `plugins.updater.pubkey/endpoints` in src-tauri/tauri.conf.json.
+name: Release
+on:
+  workflow_dispatch:
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Release workflow not configured yet; see comments in this file."

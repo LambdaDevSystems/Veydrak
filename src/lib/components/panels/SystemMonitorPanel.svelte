@@ -1,0 +1,34 @@
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import { listen } from '@tauri-apps/api/event';
+  import { cpuHistory, memHistory, memTotal, ingestSample, HISTORY_LEN, type SysSample } from '../../stores/sysmon';
+  import { formatBytes } from '../../utils/format';
+
+  onMount(() => {
+    const p = listen<SysSample>('sysmon', (e) => ingestSample(e.payload));
+    return () => { p.then((un) => un()); };
+  });
+
+  function points(values: number[], max: number): string {
+    const w = 100, h = 30;
+    return values
+      .map((v, i) => `${((i / (HISTORY_LEN - 1)) * w).toFixed(1)},${(h - (Math.min(v, max) / max) * h).toFixed(1)}`)
+      .join(' ');
+  }
+
+  const cpu = $derived($cpuHistory.at(-1) ?? 0);
+  const mem = $derived($memHistory.at(-1) ?? 0);
+</script>
+
+<section class="panel">
+  <h2>System</h2>
+  <div>CPU {cpu.toFixed(0)}%</div>
+  <svg viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points={points($cpuHistory, 100)} /></svg>
+  <div>MEM {formatBytes(mem)} / {formatBytes($memTotal)}</div>
+  <svg viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points={points($memHistory, $memTotal || 1)} /></svg>
+</section>
+
+<style>
+  svg { width: 100%; height: 48px; margin: 4px 0 10px; border-bottom: 1px solid var(--fg-dim); }
+  polyline { fill: none; stroke: var(--fg); stroke-width: 1; vector-effect: non-scaling-stroke; }
+</style>

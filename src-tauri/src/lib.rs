@@ -1,0 +1,29 @@
+mod lan;
+mod pty;
+mod state;
+mod sysmon;
+
+use state::AppState;
+
+pub fn run() {
+    tauri::Builder::default()
+        .plugin(tauri_plugin_store::Builder::new().build())
+        .manage(AppState::default())
+        .invoke_handler(tauri::generate_handler![
+            pty::manager::create_pty,
+            pty::manager::write_pty,
+            pty::manager::resize_pty,
+            pty::manager::close_pty,
+            lan::roster::get_roster,
+            lan::roster::toggle_pin,
+        ])
+        .setup(|app| {
+            let handle = app.handle().clone();
+            lan::roster::load_pins(&handle);
+            tauri::async_runtime::spawn(sysmon::monitor_loop(handle.clone()));
+            tauri::async_runtime::spawn(lan::ping::run_roster_loop(handle));
+            Ok(())
+        })
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}

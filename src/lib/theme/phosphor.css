@@ -1,0 +1,82 @@
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/600.css';
+@import '@fontsource/share-tech-mono/400.css';
+@import '@xterm/xterm/css/xterm.css';
+
+:root {
+  --font-body: 'IBM Plex Mono', monospace;
+  --font-display: 'Share Tech Mono', monospace;
+  --bg: #050806;
+}
+
+[data-phosphor='green'] {
+  --fg: #4dff88;
+  --fg-dim: #1f8c47;
+  --accent: #b6ffd0;
+  --panel-bg: rgba(10, 30, 16, 0.55);
+  --border: #1f8c47;
+}
+
+[data-phosphor='amber'] {
+  --fg: #ffb000;
+  --fg-dim: #8a5f00;
+  --accent: #ffd98a;
+  --panel-bg: rgba(40, 26, 0, 0.55);
+  --border: #8a5f00;
+}
+
+[data-phosphor='red'] {
+  --fg: #ff4d4d;
+  --fg-dim: #8c1f1f;
+  --accent: #ffb3b3;
+  --panel-bg: rgba(40, 8, 8, 0.55);
+  --border: #8c1f1f;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100vh;
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 13px;
+}
+
+.panel-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 8px;
+  padding: 8px;
+  min-height: 0;
+}
+
+.side-column {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 8px;
+  min-height: 0;
+}
+
+.panel {
+  border: 1px solid var(--border);
+  background: var(--panel-bg);
+  padding: 8px;
+  min-height: 0;
+  overflow: auto;
+}
+
+.panel h2 {
+  margin: 0 0 6px;
+  font: 400 12px var(--font-display);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
