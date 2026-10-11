@@ -8,6 +8,17 @@ Tauri 2 (Rust) and Svelte 5.
 - **LAN roster**: ARP + mDNS discovery, ICMP probing with hysteresis (3 failures to go offline, 2 successes to recover); pinned devices that go offline turn the whole UI red
 - **Phosphor themes**: green / amber, red on alert
 
+## To-do
+
+- [ ] New themes: Lambda, Cyberpunk, & Tron
+- [ ] Run the app in a real window (`pnpm tauri dev`) and check the UI visually
+- [ ] Test the Home Assistant panel against the real instance
+- [ ] Cut the first release and test the updater end to end (0.1.0 -> 0.1.1)
+- [ ] On-screen keyboard
+- [ ] Plugin engine (manifests, permissions, sandboxed plugin UIs)
+- [ ] Home Assistant: support self-signed TLS certificates
+- [ ] macOS notarization for release builds
+
 ## Development
 
 Prerequisites: Node 22, pnpm 10, Rust stable, and on Linux `libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev`.
