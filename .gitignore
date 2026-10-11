@@ -4,3 +4,12 @@ target/
 src-tauri/gen/
 *.log
 .DS_Store
+
+# Secrets and signing keys must never be committed
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+.tauri/
