@@ -13,6 +13,25 @@ pub struct PtyInstance {
     child: Box<dyn Child + Send + Sync>,
 }
 
+/// Environment variables a shell is allowed to inherit. Everything else (tokens, API keys,
+/// session secrets from the launching environment) is dropped.
+const ENV_ALLOW: &[&str] = &[
+    "HOME", "USER", "LOGNAME", "SHELL", "PATH", "LANG", "LANGUAGE", "TMPDIR", "TZ",
+    "DISPLAY", "WAYLAND_DISPLAY", "XDG_RUNTIME_DIR", "XDG_SESSION_TYPE", "SSH_AUTH_SOCK",
+    // Windows
+    "USERPROFILE", "APPDATA", "LOCALAPPDATA", "TEMP", "TMP", "SYSTEMROOT", "COMSPEC", "PATHEXT",
+];
+
+/// Build the shell environment from an allowlist; `TERM`/`COLORTERM` always match the xterm.js frontend.
+fn sanitized_env(vars: impl Iterator<Item = (String, String)>) -> Vec<(String, String)> {
+    let mut out: Vec<(String, String)> = vars
+        .filter(|(k, _)| ENV_ALLOW.contains(&k.as_str()) || k.starts_with("LC_"))
+        .collect();
+    out.push(("TERM".into(), "xterm-256color".into()));
+    out.push(("COLORTERM".into(), "truecolor".into()));
+    out
+}
+
 /// Ids become part of an event name, so restrict them to a safe charset.
 fn valid_id(id: &str) -> bool {
     !id.is_empty() && id.len() <= 64 && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
@@ -42,7 +61,15 @@ pub fn create_pty(app: AppHandle, state: State<'_, AppState>, id: String, rows: 
     }
 
     let pair = native_pty_system().openpty(size(rows, cols)).map_err(|e| e.to_string())?;
-    let child = pair.slave.spawn_command(CommandBuilder::new_default_prog()).map_err(|e| e.to_string())?;
+    let mut cmd = CommandBuilder::new_default_prog();
+    cmd.env_clear();
+    for (k, v) in sanitized_env(std::env::vars()) {
+        cmd.env(k, v);
+    }
+    if let Some(home) = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")) {
+        cmd.cwd(home);
+    }
+    let child = pair.slave.spawn_command(cmd).map_err(|e| e.to_string())?;
     drop(pair.slave);
     let mut reader = pair.master.try_clone_reader().map_err(|e| e.to_string())?;
     let writer = pair.master.take_writer().map_err(|e| e.to_string())?;
@@ -104,6 +131,24 @@ mod tests {
         assert_eq!(split_complete_utf8(&euro[..2]), 0);
         assert_eq!(split_complete_utf8(b"ab\xe2\x82"), 2);
         assert_eq!(split_complete_utf8(euro), 3);
+    }
+
+    #[test]
+    fn env_is_allowlisted() {
+        let input = vec![
+            ("PATH".to_string(), "/usr/bin".to_string()),
+            ("LC_ALL".to_string(), "C".to_string()),
+            ("GITHUB_TOKEN".to_string(), "secret".to_string()),
+            ("AWS_SECRET_ACCESS_KEY".to_string(), "secret".to_string()),
+            ("TERM".to_string(), "dumb".to_string()),
+        ];
+        let out = sanitized_env(input.into_iter());
+        let keys: Vec<&str> = out.iter().map(|(k, _)| k.as_str()).collect();
+        assert!(keys.contains(&"PATH") && keys.contains(&"LC_ALL"));
+        assert!(!keys.contains(&"GITHUB_TOKEN") && !keys.contains(&"AWS_SECRET_ACCESS_KEY"));
+        // inherited TERM is dropped; ours is appended
+        assert_eq!(out.iter().filter(|(k, v)| k == "TERM" && v == "xterm-256color").count(), 1);
+        assert_eq!(out.iter().filter(|(k, _)| k == "TERM").count(), 1);
     }
 
     #[test]

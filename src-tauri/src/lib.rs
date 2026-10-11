@@ -1,3 +1,4 @@
+mod guard;
 mod lan;
 mod pty;
 mod state;
@@ -6,6 +7,11 @@ mod sysmon;
 use state::AppState;
 
 pub fn run() {
+    if let Err(msg) = guard::refuse_root() {
+        eprintln!("{msg}");
+        std::process::exit(1);
+    }
+
     tauri::Builder::default()
         .plugin(tauri_plugin_store::Builder::new().build())
         .manage(AppState::default())

@@ -26,3 +26,10 @@ ICMP probes need unprivileged ICMP sockets (Linux: `net.ipv4.ping_group_range` m
 ## Not yet wired
 
 - Auto-update (needs signing keys; see `.github/workflows/release.yml`).
+
+## Security hardening
+
+- Refuses to start as root (Unix); override with `VEYDRAK_ALLOW_ROOT=1`.
+- Terminal shells start with an allowlisted environment (no inherited tokens or API keys) and `TERM=xterm-256color`.
+- Strict CSP, scoped Tauri capabilities, validated PTY ids.
+- Release bundles: `deb`, `rpm`, `dmg`, `app`, `nsis` (no AppImage).
