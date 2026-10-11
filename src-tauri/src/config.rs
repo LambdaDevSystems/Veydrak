@@ -5,7 +5,9 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-pub const KNOWN_PANELS: &[&str] = &["terminal", "sysmon", "lan"];
+pub const KNOWN_PANELS: &[&str] = &["terminal", "sysmon", "lan", "homeassistant"];
+const MAX_HA_ENTITIES: usize = 24;
+const MAX_LABEL_CHARS: usize = 40;
 pub const KNOWN_THEMES: &[&str] = &["green", "amber"];
 const MAX_SIDE_PANELS: usize = 4;
 
@@ -22,6 +24,27 @@ impl Default for Layout {
     }
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
+#[serde(default)]
+pub struct HaEntity {
+    pub id: String,
+    pub label: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
+#[serde(default)]
+pub struct HomeAssistant {
+    /// Base URL, e.g. `http://homeassistant.local:8123`. Validated when the client starts.
+    pub url: Option<String>,
+    pub entities: Vec<HaEntity>,
+}
+
+/// `domain.object_id` with lowercase letters, digits and underscores, as HA entity ids are.
+fn valid_entity_id(id: &str) -> bool {
+    let ok = |p: &str| !p.is_empty() && p.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_');
+    id.split_once('.').is_some_and(|(d, o)| ok(d) && ok(o))
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(default)]
 pub struct Config {
@@ -29,11 +52,12 @@ pub struct Config {
     /// Check GitHub Releases for a signed update at startup (installing always needs a click).
     pub check_updates: bool,
     pub layout: Layout,
+    pub homeassistant: HomeAssistant,
 }
 
 impl Default for Config {
     fn default() -> Self {
-        Self { theme: "green".into(), check_updates: true, layout: Layout::default() }
+        Self { theme: "green".into(), check_updates: true, layout: Layout::default(), homeassistant: HomeAssistant::default() }
     }
 }
 
@@ -68,6 +92,17 @@ impl Config {
             }
         }
         self.layout = Layout { main, side };
+
+        let mut ids: Vec<String> = Vec::new();
+        self.homeassistant.entities.retain_mut(|e| {
+            e.id = e.id.trim().to_string();
+            e.label = e.label.take().map(|l| l.trim().chars().take(MAX_LABEL_CHARS).collect::<String>()).filter(|l| !l.is_empty());
+            let keep = valid_entity_id(&e.id) && !ids.contains(&e.id) && ids.len() < MAX_HA_ENTITIES;
+            if keep {
+                ids.push(e.id.clone());
+            }
+            keep
+        });
         self
     }
 }
@@ -177,6 +212,32 @@ mod tests {
     }
 
     #[test]
+    fn homeassistant_entities_are_validated() {
+        let l = parse(
+            r#"{"homeassistant":{"url":"http://ha.local:8123","entities":[
+                {"id":"sensor.ups_runtime","label":"  UPS  "},
+                {"id":"sensor.ups_runtime"},
+                {"id":"Sensor.Bad"},
+                {"id":"nodot"},
+                {"id":"light.x","label":""},
+                {"label":"no id"}]}}"#,
+        );
+        let ha = l.config.homeassistant;
+        assert_eq!(ha.url.as_deref(), Some("http://ha.local:8123"));
+        let ids: Vec<&str> = ha.entities.iter().map(|e| e.id.as_str()).collect();
+        assert_eq!(ids, ["sensor.ups_runtime", "light.x"]);
+        assert_eq!(ha.entities[0].label.as_deref(), Some("UPS"));
+        assert_eq!(ha.entities[1].label, None);
+    }
+
+    #[test]
+    fn homeassistant_entities_are_capped() {
+        let many: Vec<String> = (0..40).map(|i| format!(r#"{{"id":"sensor.s{i}"}}"#)).collect();
+        let l = parse(&format!(r#"{{"homeassistant":{{"entities":[{}]}}}}"#, many.join(",")));
+        assert_eq!(l.config.homeassistant.entities.len(), 24);
+    }
+
+    #[test]
     fn invalid_json_falls_back_with_warning() {
         let l = parse("{ nope");
         assert!(l.warning.is_some());
@@ -187,8 +248,8 @@ mod tests {
     fn unknown_values_are_dropped_and_deduped() {
         let c = Config {
             theme: "hotpink".into(),
-            check_updates: true,
             layout: Layout { main: "bogus".into(), side: s(&["lan", "lan", "x", "sysmon", "terminal"]) },
+            ..Config::default()
         }
         .sanitized();
         assert_eq!(c.theme, "green");

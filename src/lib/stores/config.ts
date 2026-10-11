@@ -7,8 +7,18 @@ export interface Layout {
   side: string[];
 }
 
+export interface HaEntityConfig {
+  id: string;
+  label: string | null;
+}
+
 export interface LoadedConfig {
-  config: { theme: string; check_updates: boolean; layout: Layout };
+  config: {
+    theme: string;
+    check_updates: boolean;
+    layout: Layout;
+    homeassistant: { url: string | null; entities: HaEntityConfig[] };
+  };
   warning: string | null;
 }
 
@@ -16,12 +26,15 @@ export const DEFAULT_LAYOUT: Layout = { main: 'terminal', side: ['sysmon', 'lan'
 
 export const layout = writable<Layout>(DEFAULT_LAYOUT);
 export const configWarning = writable<string | null>(null);
+/** Entities shown by the Home Assistant panel, in config order. */
+export const haEntities = writable<HaEntityConfig[]>([]);
 
 /** Load config.json (already validated by the backend) and apply it to the stores. Resolves to `check_updates`. */
 export async function loadConfig(): Promise<boolean> {
   try {
     const { config, warning } = await invoke<LoadedConfig>('get_config');
     layout.set(config.layout);
+    haEntities.set(config.homeassistant.entities);
     configWarning.set(warning);
     if (config.theme === 'green' || config.theme === 'amber') basePhosphor.set(config.theme as Phosphor);
     return config.check_updates;
