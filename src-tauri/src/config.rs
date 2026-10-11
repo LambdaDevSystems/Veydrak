@@ -26,12 +26,14 @@ impl Default for Layout {
 #[serde(default)]
 pub struct Config {
     pub theme: String,
+    /// Check GitHub Releases for a signed update at startup (installing always needs a click).
+    pub check_updates: bool,
     pub layout: Layout,
 }
 
 impl Default for Config {
     fn default() -> Self {
-        Self { theme: "green".into(), layout: Layout::default() }
+        Self { theme: "green".into(), check_updates: true, layout: Layout::default() }
     }
 }
 
@@ -169,6 +171,12 @@ mod tests {
     }
 
     #[test]
+    fn check_updates_defaults_on_and_can_be_disabled() {
+        assert!(parse(r#"{}"#).config.check_updates);
+        assert!(!parse(r#"{"check_updates":false}"#).config.check_updates);
+    }
+
+    #[test]
     fn invalid_json_falls_back_with_warning() {
         let l = parse("{ nope");
         assert!(l.warning.is_some());
@@ -179,6 +187,7 @@ mod tests {
     fn unknown_values_are_dropped_and_deduped() {
         let c = Config {
             theme: "hotpink".into(),
+            check_updates: true,
             layout: Layout { main: "bogus".into(), side: s(&["lan", "lan", "x", "sysmon", "terminal"]) },
         }
         .sanitized();
