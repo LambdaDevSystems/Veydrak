@@ -2,6 +2,7 @@ mod config;
 mod guard;
 mod homeassistant;
 mod lan;
+mod plugins;
 mod pty;
 mod state;
 mod sysmon;
