@@ -33,7 +33,7 @@ fn sanitized_env(vars: impl Iterator<Item = (String, String)>) -> Vec<(String, S
 }
 
 /// Ids become part of an event name, so restrict them to a safe charset.
-fn valid_id(id: &str) -> bool {
+pub(crate) fn valid_id(id: &str) -> bool {
     !id.is_empty() && id.len() <= 64 && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
 }
 

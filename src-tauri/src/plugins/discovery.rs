@@ -23,8 +23,11 @@ pub fn plugins_dir() -> Option<PathBuf> {
     crate::config::config_path()?.parent().map(|p| p.join("plugins"))
 }
 
-fn is_real_file(p: &Path) -> bool {
-    std::fs::symlink_metadata(p).is_ok_and(|m| m.is_file())
+/// The entry must be a regular file whose real path stays inside the plugin folder, so neither a symlinked
+/// file nor a symlinked subdirectory can point outside it.
+fn entry_is_contained(dir: &Path, entry: &Path) -> bool {
+    let (Ok(root), Ok(real)) = (dir.canonicalize(), entry.canonicalize()) else { return false };
+    real.starts_with(&root) && real.is_file()
 }
 
 fn load_one(dir: &Path, name: &str) -> Result<Manifest, String> {
@@ -38,7 +41,7 @@ fn load_one(dir: &Path, name: &str) -> Result<Manifest, String> {
     if m.id != name {
         return Err(format!("folder name must match plugin id {:?}", m.id));
     }
-    if !is_real_file(&dir.join(&m.entry)) {
+    if !entry_is_contained(dir, &dir.join(&m.entry)) {
         return Err(format!("entry {:?} is missing or not a regular file", m.entry));
     }
     Ok(m)
@@ -135,5 +138,31 @@ mod tests {
         assert!(d.plugins.is_empty());
         let _ = fs::remove_dir_all(&root);
         let _ = fs::remove_dir_all(&outside);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn symlinked_subdirectory_in_entry_path_is_rejected() {
+        let root = tmp("subdir");
+        let outside = tmp("subdir-outside");
+        fs::create_dir_all(outside.join("ui")).unwrap();
+        fs::write(outside.join("ui/main.html"), "x").unwrap();
+        write_plugin(&root, "sub", r#"{"id":"sub","name":"S","version":"1","entry":"ui/main.html"}"#, false);
+        std::os::unix::fs::symlink(outside.join("ui"), root.join("sub/ui")).unwrap();
+        let d = discover(&root);
+        assert!(d.plugins.is_empty());
+        assert_eq!(d.warnings.len(), 1);
+        let _ = fs::remove_dir_all(&root);
+        let _ = fs::remove_dir_all(&outside);
+    }
+
+    #[test]
+    fn nested_entry_inside_plugin_is_accepted() {
+        let root = tmp("nested");
+        write_plugin(&root, "nest", r#"{"id":"nest","name":"N","version":"1","entry":"ui/main.html"}"#, false);
+        fs::create_dir_all(root.join("nest/ui")).unwrap();
+        fs::write(root.join("nest/ui/main.html"), "x").unwrap();
+        assert_eq!(discover(&root).plugins.len(), 1);
+        let _ = fs::remove_dir_all(&root);
     }
 }

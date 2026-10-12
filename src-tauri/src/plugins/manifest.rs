@@ -5,6 +5,8 @@ use std::path::{Component, Path};
 
 use serde::Deserialize;
 
+use crate::pty::manager::valid_id;
+
 pub const MAX_MANIFEST_BYTES: u64 = 16 * 1024;
 const MAX_NAME_CHARS: usize = 40;
 const MAX_VERSION_CHARS: usize = 32;
@@ -48,19 +50,17 @@ impl Permission {
     }
 }
 
-/// Plain lowercase DNS names only: no schemes, ports, paths, wildcards or IP-literal tricks.
+/// Plain lowercase DNS names only: no schemes, ports, paths, wildcards or IP literals. A numeric last
+/// label rules out dotted-quad and decimal/hex-style IPv4 forms (`127.0.0.1`, `2130706433`); IPv6 fails on `:`.
 fn valid_host(h: &str) -> bool {
+    let numeric_tld = h.rsplit('.').next().is_some_and(|l| l.chars().all(|c| c.is_ascii_digit()));
     !h.is_empty()
+        && !numeric_tld
         && h.len() <= 253
         && !h.starts_with(['.', '-'])
         && !h.ends_with(['.', '-'])
         && !h.contains("..")
         && h.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '.' || c == '-')
-}
-
-/// Ids end up in URLs, event names and file paths, so restrict them to a safe charset.
-pub fn valid_id(id: &str) -> bool {
-    !id.is_empty() && id.len() <= 64 && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
 }
 
 #[derive(Deserialize)]
@@ -96,8 +96,13 @@ fn valid_entry(entry: &str) -> bool {
     Path::new(entry).components().all(|c| matches!(c, Component::Normal(_)))
 }
 
+/// Control characters plus zero-width and bidi format characters, which could spoof the name shown in
+/// the permission prompt.
 fn has_control(s: &str) -> bool {
-    s.chars().any(char::is_control)
+    s.chars().any(|c| {
+        c.is_control()
+            || matches!(c, '\u{200B}'..='\u{200F}' | '\u{202A}'..='\u{202E}' | '\u{2060}'..='\u{2064}' | '\u{2066}'..='\u{2069}' | '\u{FEFF}')
+    })
 }
 
 pub fn parse(text: &str) -> Result<Manifest, String> {
@@ -146,6 +151,7 @@ mod tests {
     fn parses_all_permissions_and_roundtrips() {
         let m = parse(&with("permissions", r#"["sysmon.read","roster.read","ha.read","storage","net:api.example.com"]"#)).unwrap();
         assert_eq!(m.permissions.len(), 5);
+        assert!(parse(&with("permissions", r#"["net:localhost","net:my-nas.local"]"#)).is_ok());
         for p in &m.permissions {
             assert_eq!(&Permission::parse(&p.as_string()).unwrap(), p);
         }
@@ -168,7 +174,7 @@ mod tests {
 
     #[test]
     fn rejects_unknown_and_malformed_permissions() {
-        for p in ["pty", "net:", "net:*.example.com", "net:https://x.com", "net:host:80", "net:Example.com", "net:-x.com", "net:a..b"] {
+        for p in ["pty", "net:", "net:*.example.com", "net:https://x.com", "net:host:80", "net:Example.com", "net:-x.com", "net:a..b", "net:127.0.0.1", "net:192.168.1.5", "net:2130706433", "net:localhost.5"] {
             assert!(parse(&with("permissions", &serde_json::to_string(&[p]).unwrap())).is_err(), "{p:?}");
         }
     }
@@ -184,6 +190,9 @@ mod tests {
     fn rejects_bad_name_and_version() {
         assert!(parse(&with("name", r#""  ""#)).is_err());
         assert!(parse(&with("name", r#""a\u0007b""#)).is_err());
+        for c in ["\u{202e}", "\u{200b}", "\u{2066}", "\u{feff}"] {
+            assert!(parse(&with("name", &serde_json::to_string(&format!("ok{c}name")).unwrap())).is_err(), "{c:?}");
+        }
         assert!(parse(&with("name", &serde_json::to_string(&"x".repeat(41)).unwrap())).is_err());
         assert!(parse(&with("version", r#""1 0""#)).is_err());
     }
