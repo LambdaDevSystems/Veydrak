@@ -1,0 +1,6 @@
+[advisories]
+# zip 4.x comes from tauri-plugin-updater, which has no release on zip >=9 yet (2.14.0 still
+# requires ^4). Updater payloads are minisign-verified against the pubkey in tauri.conf.json
+# before extraction, so exploiting these needs a compromised signing key.
+# Re-check and drop these when tauri-plugin-updater moves off zip 4.
+ignore = ["RUSTSEC-2026-0367", "RUSTSEC-2026-0368", "RUSTSEC-2026-0369"]
