@@ -33,7 +33,7 @@ url = "2"
 portable-pty = "0.9"
 sysinfo = "0.39"
 mdns-sd = "0.11"
-surge-ping = "0.8"
+surge-ping = "0.9"
 rand = "0.8"
 
 [target.'cfg(unix)'.dependencies]
