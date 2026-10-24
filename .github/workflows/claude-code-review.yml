@@ -18,6 +18,10 @@ jobs:
     #   github.event.pull_request.user.login == 'new-developer' ||
     #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
 
+    # Dependabot PRs: claude-code-action rejects bot-initiated runs, and Dependabot has no access
+    # to this repo's CLAUDE_CODE_OAUTH_TOKEN, so skip them instead of failing.
+    if: github.event.pull_request.user.login != 'dependabot[bot]'
+
     runs-on: ubuntu-latest
     permissions:
       contents: read
