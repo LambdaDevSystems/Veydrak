@@ -32,7 +32,7 @@ keyring = { version = "3", features = ["apple-native", "windows-native", "async-
 url = "2"
 portable-pty = "0.9"
 sysinfo = "0.39"
-mdns-sd = "0.11"
+mdns-sd = "0.21"
 surge-ping = "0.9"
 rand = "0.10"
 

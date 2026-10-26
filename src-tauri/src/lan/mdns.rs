@@ -29,7 +29,7 @@ pub fn start() -> NameMap {
                     let host = info.get_hostname().trim_end_matches('.').trim_end_matches(".local").to_string();
                     if let Ok(mut m) = names.lock() {
                         for ip in info.get_addresses() {
-                            m.insert(*ip, host.clone());
+                            m.insert(ip.to_ip_addr(), host.clone());
                         }
                     }
                 }
